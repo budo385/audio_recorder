@@ -36,7 +36,12 @@ public class SwiftAudioRecorderPlugin: NSObject, FlutterPlugin, AVAudioRecorderD
                 AVEncoderAudioQualityKey: AVAudioQuality.high.rawValue
             ]
             do {
-                try AVAudioSession.sharedInstance().setCategory(AVAudioSessionCategoryPlayAndRecord, with: AVAudioSessionCategoryOptions.defaultToSpeaker)
+                if #available(iOS 10.0, *) {
+                    try AVAudioSession.sharedInstance().setCategory(AVAudioSession.Category.playAndRecord, mode: AVAudioSession.Mode.default, options:  AVAudioSession.CategoryOptions.defaultToSpeaker)
+                } else {
+                    AVAudioSession.sharedInstance().perform(NSSelectorFromString("setCategory:error:"), with: AVAudioSession.Category.playAndRecord)
+                }
+
                 try AVAudioSession.sharedInstance().setActive(true)
                 
                 audioRecorder = try AVAudioRecorder(url: URL(string: mPath)!, settings: settings)
@@ -64,16 +69,16 @@ public class SwiftAudioRecorderPlugin: NSObject, FlutterPlugin, AVAudioRecorderD
             result(isRecording)
         case "hasPermissions":
             print("hasPermissions")
-            switch AVAudioSession.sharedInstance().recordPermission() {
-            case AVAudioSessionRecordPermission.granted:
+            switch AVAudioSession.sharedInstance().recordPermission {
+            case AVAudioSession.RecordPermission.granted:
                 NSLog("granted")
                 hasPermissions = true
                 break
-            case AVAudioSessionRecordPermission.denied:
+            case AVAudioSession.RecordPermission.denied:
                 NSLog("denied")
                 hasPermissions = false
                 break
-            case AVAudioSessionRecordPermission.undetermined:
+            case AVAudioSession.RecordPermission.undetermined:
                 NSLog("undetermined")
                 AVAudioSession.sharedInstance().requestRecordPermission() { [unowned self] allowed in
                     DispatchQueue.main.async {
@@ -104,3 +109,8 @@ public class SwiftAudioRecorderPlugin: NSObject, FlutterPlugin, AVAudioRecorderD
         }
     }
 
+
+// Helper function inserted by Swift 4.2 migrator.
+fileprivate func convertFromAVAudioSessionCategory(_ input: AVAudioSession.Category) -> String {
+	return input.rawValue
+}
